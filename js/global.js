@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const direction = el.classList.contains('is-02') ? -1 : 1;
 
     gsap.to(el, {
-      rotation: '+=' + (18 * direction),
+      rotation: '+=' + (28 * direction),
       ease: 'none',
       transformOrigin: '50% 50%',
       scrollTrigger: {
