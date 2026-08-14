@@ -476,6 +476,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  gsap.utils.toArray('.bg-shape-outline.is-01').forEach((el, i) => {
+    gsap.to(el, {
+      rotation: '+=360',
+      duration: 40 + i * 6,
+      ease: 'none',
+      repeat: -1,
+      transformOrigin: '50% 50%',
+    });
+  });
+
+  gsap.utils.toArray('.bg-shape-outline.is-02').forEach((el, i) => {
+    gsap.to(el, {
+      rotation: '-=360',
+      duration: 55 + i * 7,
+      ease: 'none',
+      repeat: -1,
+      transformOrigin: '50% 50%',
+    });
+  });
 
 // <!--  STICKY BALLS -->
 
