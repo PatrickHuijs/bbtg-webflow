@@ -40,7 +40,7 @@ function initScrollToAnchorLenis() {
       lenis.scrollTo(targetScrollToAnchorLenis, {
         easing: (x) => (x < 0.5 ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2),
         duration: 1.2,
-        offset: 0 // Option to create an offset when there is a fixed navigation for example
+        offset: -80 // Option to create an offset when there is a fixed navigation for example
       });
     });
   });
