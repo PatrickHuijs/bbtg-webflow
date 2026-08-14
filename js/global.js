@@ -30,10 +30,6 @@
   });
 
 //<!-- LENIS ANCHOR LINK -->
-// Lenis
-const lenis = new Lenis({
-  autoRaf: true,
-});
 
 // Scroll-To Anchor Lenis
 function initScrollToAnchorLenis() {
