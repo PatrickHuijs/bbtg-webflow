@@ -476,23 +476,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  gsap.utils.toArray('.bg-shape-outline.is-01').forEach((el, i) => {
-    gsap.to(el, {
-      rotation: '+=360',
-      duration: 40 + i * 6,
-      ease: 'none',
-      repeat: -1,
-      transformOrigin: '50% 50%',
-    });
-  });
+// outline shape
+  gsap.registerPlugin(ScrollTrigger);
 
-  gsap.utils.toArray('.bg-shape-outline.is-02').forEach((el, i) => {
+  gsap.utils.toArray('.bg-shape-outline').forEach((el, i) => {
+    const direction = el.classList.contains('is-02') ? -1 : 1;
+
     gsap.to(el, {
-      rotation: '-=360',
-      duration: 55 + i * 7,
+      rotation: '+=' + (18 * direction),
       ease: 'none',
-      repeat: -1,
       transformOrigin: '50% 50%',
+      scrollTrigger: {
+        trigger: document.body,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 2.5,
+      },
     });
   });
 
