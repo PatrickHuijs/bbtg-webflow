@@ -1497,3 +1497,29 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   window.addEventListener('DOMContentLoaded', initFadeBall);
+
+
+// EXPANDING CARDS — toggle .is-active on click
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-card-expand]').forEach(function (group) {
+      var cards = Array.prototype.slice.call(group.querySelectorAll('.card'));
+      if (!cards.length) return;
+
+      var closeSiblings = group.getAttribute('data-card-expand') !== 'multi';
+
+      group.addEventListener('click', function (e) {
+        var card = e.target.closest('.card');
+        if (!card || !group.contains(card)) return;
+        if (e.target.closest('a, button, .button, .button-wrap')) return;
+
+        var willOpen = !card.classList.contains('is-active');
+        if (closeSiblings) {
+          cards.forEach(function (c) { if (c !== card) c.classList.remove('is-active'); });
+        }
+        card.classList.toggle('is-active', willOpen);
+      });
+    });
+  });
+})();
+
