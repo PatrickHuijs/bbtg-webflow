@@ -1499,3 +1499,233 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('DOMContentLoaded', initFadeBall);
 
 
+
+  /* ---------------------------------------------------------
+ Tabs + in-card visuals (tablet ≤991px: click-only, visual inside card)
+ --------------------------------------------------------- */
+  const TABLET_BP = 991;
+  const isMobile = () => window.innerWidth <= TABLET_BP;
+
+  /* 1. Clone each visual-item image into its matching card (once) */
+  function initCardVisuals() {
+    document.querySelectorAll('[data-tabs="wrapper"]').forEach((wrapper) => {
+      const cards = wrapper.querySelectorAll('[data-tabs="content-item"] .card.for-tabs');
+      const visualItems = wrapper.querySelectorAll('[data-tabs="visual-item"]');
+      cards.forEach((card, i) => {
+        const target = card.querySelector('[data-card-visual]');
+        const sourceImg = visualItems[i]?.querySelector('img');
+        if (target && sourceImg && !target.querySelector('img')) {
+          target.appendChild(sourceImg.cloneNode(true));
+        }
+      });
+    });
+  }
+
+  /* 2. Tab system — autoplay on desktop only, click everywhere */
+  function initTabSystem() {
+    const wrappers = document.querySelectorAll('[data-tabs="wrapper"]');
+    wrappers.forEach((wrapper) => {
+      const contentItems = wrapper.querySelectorAll('[data-tabs="content-item"]');
+      const visualItems = wrapper.querySelectorAll('[data-tabs="visual-item"]');
+      const autoplayAttr = wrapper.dataset.tabsAutoplay === 'true';
+      const autoplayDuration = parseInt(wrapper.dataset.tabsAutoplayDuration) || 5000;
+      // Variant-aware fade direction: visuals-left enters from the left
+      const visualsLeft = wrapper.closest('[data-wf--section-tabs--general-variant="visuals-left"]') !== null;
+      const enterX = visualsLeft ? -3 : 3;
+
+      let activeContent = null;
+      let activeVisual = null;
+      let isAnimating = false;
+      let pendingIndex = null; // queue the last click made mid-animation
+      let progressBarTween = null;
+      const canAutoplay = () => autoplayAttr && !isMobile();
+
+      // Plain autoplay timer (no visible progress bar in this variant)
+      function startProgressBar(index) {
+        if (progressBarTween) progressBarTween.kill();
+        progressBarTween = gsap.to(
+          {},
+          {
+            duration: autoplayDuration / 1000,
+            onComplete: () => {
+              if (!isAnimating && canAutoplay()) {
+                switchTab((index + 1) % contentItems.length);
+              }
+            },
+          },
+        );
+      }
+
+      function switchTab(index) {
+        const incomingContent = contentItems[index];
+        if (!incomingContent || incomingContent === activeContent) return;
+        if (isAnimating) {
+          pendingIndex = index; // queue instead of dropping the click
+          return;
+        }
+
+        isAnimating = true;
+        pendingIndex = null;
+        if (progressBarTween) progressBarTween.kill();
+
+        const outgoingContent = activeContent;
+        const outgoingVisual = activeVisual;
+        const outgoingDetails = outgoingContent?.querySelector('[data-tabs="item-details"]');
+        const incomingVisual = visualItems[index];
+        const incomingDetails = incomingContent.querySelector('[data-tabs="item-details"]');
+
+        outgoingContent?.classList.remove('active');
+        outgoingContent?.querySelector('.card')?.classList.remove('is-active');
+        outgoingVisual?.classList.remove('active');
+        incomingContent.classList.add('active');
+        incomingContent.querySelector('.card')?.classList.add('is-active');
+        incomingVisual?.classList.add('active');
+
+        const tl = gsap.timeline({
+          defaults: {
+            duration: 0.65,
+            ease: 'power3',
+          },
+          onComplete: () => {
+            activeContent = incomingContent;
+            activeVisual = incomingVisual;
+            isAnimating = false;
+            // honor a click that arrived during the animation, else resume autoplay
+            if (pendingIndex !== null && pendingIndex !== index) {
+              const next = pendingIndex;
+              pendingIndex = null;
+              switchTab(next);
+            } else if (canAutoplay()) {
+              startProgressBar(index);
+            }
+          },
+        });
+
+        if (outgoingContent) {
+          if (outgoingVisual)
+            tl.to(
+              outgoingVisual,
+              {
+                autoAlpha: 0,
+                xPercent: enterX,
+              },
+              0,
+            );
+          if (outgoingDetails)
+            tl.to(
+              outgoingDetails,
+              {
+                height: 0,
+              },
+              0,
+            );
+        }
+
+        if (incomingVisual) {
+          tl.fromTo(
+            incomingVisual,
+            {
+              autoAlpha: 0,
+              xPercent: enterX,
+            },
+            {
+              autoAlpha: 1,
+              xPercent: 0,
+            },
+            0.3,
+          );
+        }
+
+        if (incomingDetails) {
+          tl.fromTo(
+            incomingDetails,
+            {
+              height: 0,
+            },
+            {
+              height: 'auto',
+            },
+            0,
+          );
+        }
+
+        // ensure the timeline always completes even if it has no tweens
+        if (!tl.getChildren().length) {
+          tl.to(
+            {},
+            {
+              duration: 0.01,
+            },
+          );
+        }
+      }
+
+      // every visual starts hidden so GSAP (not CSS) owns show/hide from the start
+      gsap.set(visualItems, { autoAlpha: 0 });
+
+      // initial state: first tab active (no autoplay kickoff on tablet)
+      switchTab(0);
+
+      contentItems.forEach((item, i) =>
+        item.addEventListener('click', () => {
+          if (isMobile()) return; // tablet: card-expand handles it
+          switchTab(i); // active/animating guards live inside switchTab now
+        }),
+      );
+    });
+  }
+
+  /* 3. Card click — grid cards everywhere, tab cards on tablet only */
+  function initCardExpand() {
+    // Grid cards: alleen binnen een opt-in container
+    const gridCards = Array.from(document.querySelectorAll('[data-card-expand] .card')).filter((c) => !c.classList.contains('for-tabs') && !c.classList.contains('for-swiper'));
+    // Tab cards: altijd, los van opt-in
+    const tabCards = Array.from(document.querySelectorAll('.card.for-tabs')).filter((c) => !c.classList.contains('for-swiper'));
+
+    function applyActiveLayout(activeCard) {
+      const activeRow = Math.round(activeCard.getBoundingClientRect().top);
+      gridCards.forEach((card) => {
+        const row = Math.round(card.getBoundingClientRect().top);
+        if (row === activeRow) {
+          card.style.flex = card === activeCard ? '0 0 calc(50% - 0.67rem)' : '0 0 calc(25% - 0.67rem)';
+        } else {
+          card.style.flex = '0 0 calc(33.333% - 0.67rem)';
+        }
+      });
+    }
+
+    function resetLayout() {
+      gridCards.forEach((card) => (card.style.flex = ''));
+    }
+
+    function bindCard(card, group, isTabCard) {
+      card.addEventListener('click', () => {
+        // desktop tab cards worden door het tab-systeem aangestuurd
+        if (isTabCard && !isMobile()) return;
+        const wasActive = card.classList.contains('is-active');
+        group.forEach((c) => c.classList.remove('is-active'));
+        if (!wasActive) {
+          card.classList.add('is-active');
+          if (!isTabCard && !isMobile()) applyActiveLayout(card);
+        } else if (!isTabCard && !isMobile()) {
+          resetLayout();
+        }
+      });
+    }
+
+    gridCards.forEach((card) => bindCard(card, gridCards, false));
+    tabCards.forEach((card) => bindCard(card, tabCards, true));
+
+    if (isMobile() && tabCards[0]) tabCards[0].classList.add('is-active');
+
+    window.addEventListener('resize', () => {
+      if (isMobile()) resetLayout();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initCardVisuals();
+    initTabSystem();
+    initCardExpand();
+  });
+
