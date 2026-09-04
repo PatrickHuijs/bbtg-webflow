@@ -1675,57 +1675,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+
+
+
+
   /* 3. Card click — grid cards everywhere, tab cards on tablet only */
-  function initCardExpand() {
-    // Grid cards: alleen binnen een opt-in container
-    const gridCards = Array.from(document.querySelectorAll('[data-card-expand] .card')).filter((c) => !c.classList.contains('for-tabs') && !c.classList.contains('for-swiper'));
-    // Tab cards: altijd, los van opt-in
-    const tabCards = Array.from(document.querySelectorAll('.card.for-tabs')).filter((c) => !c.classList.contains('for-swiper'));
+ function initCardExpand() {
+  const tabCards = Array.from(document.querySelectorAll('.card.for-tabs'))
+    .filter((c) => !c.classList.contains('for-swiper'));
 
-    function applyActiveLayout(activeCard) {
-      const activeRow = Math.round(activeCard.getBoundingClientRect().top);
-      gridCards.forEach((card) => {
-        const row = Math.round(card.getBoundingClientRect().top);
-        if (row === activeRow) {
-          card.style.flex = card === activeCard ? '0 0 calc(50% - 0.67rem)' : '0 0 calc(25% - 0.67rem)';
-        } else {
-          card.style.flex = '0 0 calc(33.333% - 0.67rem)';
-        }
-      });
-    }
-
-    function resetLayout() {
-      gridCards.forEach((card) => (card.style.flex = ''));
-    }
-
-    function bindCard(card, group, isTabCard) {
-      card.addEventListener('click', () => {
-        // desktop tab cards worden door het tab-systeem aangestuurd
-        if (isTabCard && !isMobile()) return;
-        const wasActive = card.classList.contains('is-active');
-        group.forEach((c) => c.classList.remove('is-active'));
-        if (!wasActive) {
-          card.classList.add('is-active');
-          if (!isTabCard && !isMobile()) applyActiveLayout(card);
-        } else if (!isTabCard && !isMobile()) {
-          resetLayout();
-        }
-      });
-    }
-
-    gridCards.forEach((card) => bindCard(card, gridCards, false));
-    tabCards.forEach((card) => bindCard(card, tabCards, true));
-
-    if (isMobile() && tabCards[0]) tabCards[0].classList.add('is-active');
-
-    window.addEventListener('resize', () => {
-      if (isMobile()) resetLayout();
+  function bindCard(card, group, isTabCard) {
+    card.addEventListener('click', () => {
+      if (isTabCard && !isMobile()) return;
+      const wasActive = card.classList.contains('is-active');
+      group.forEach((c) => c.classList.remove('is-active'));
+      if (!wasActive) card.classList.add('is-active');
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    initCardVisuals();
-    initTabSystem();
-    initCardExpand();
+  document.querySelectorAll('[data-card-expand]').forEach((root) => {
+    const gridCards = Array.from(root.querySelectorAll('.card'))
+      .filter((c) => !c.classList.contains('for-tabs') && !c.classList.contains('for-swiper'));
+    gridCards.forEach((card) => bindCard(card, gridCards, false));
   });
+
+  tabCards.forEach((card) => bindCard(card, tabCards, true));
+
+  if (isMobile() && tabCards[0]) tabCards[0].classList.add('is-active');
+}
 
