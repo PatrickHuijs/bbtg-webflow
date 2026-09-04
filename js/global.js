@@ -1676,45 +1676,76 @@ function initTabSystem() {
   });
 }
 
-/* 3. Card click — grid cards everywhere, tab cards on tablet only
-
-   Let op: alle breedtes worden in CSS geregeld (flex-grow op
-   .is-active binnen [data-card-expand]). Zet hier nooit meer
-   inline flex/width/flex-basis: dat overschrijft de stylesheet
-   en laat de rijen opnieuw afbreken. */
 function initCardExpand() {
-  // Tab cards: altijd, los van opt-in
+  const SHARE = { third: 100 / 3, half: 50, twothird: 200 / 3 };
+  const MIN_ACTIVE = 50; // een kaart klapt minimaal uit naar de helft
+
   const tabCards = Array.from(document.querySelectorAll('.card.for-tabs'))
     .filter((c) => !c.classList.contains('for-swiper'));
 
-  function bindCard(card, group, isTabCard) {
-    card.addEventListener('click', () => {
-      // desktop tab cards worden door het tab-systeem aangestuurd
-      if (isTabCard && !isMobile()) return;
-      const wasActive = card.classList.contains('is-active');
-      group.forEach((c) => c.classList.remove('is-active'));
-      if (!wasActive) card.classList.add('is-active');
+  function shareOf(card) {
+    return SHARE[card.getAttribute('data-card-width')] || SHARE.third;
+  }
+
+  function clearRow(cards) {
+    cards.forEach((c) => (c.style.flex = ''));
+  }
+
+  /* Zet alleen de kaarten in de rij van de actieve kaart. De som
+     blijft exact 100%, dus de regelafbreking verandert niet en
+     andere rijen blijven ongemoeid. */
+  function applyRow(activeCard, cards) {
+    clearRow(cards);
+    const top = Math.round(activeCard.getBoundingClientRect().top);
+    const row = cards.filter((c) => Math.round(c.getBoundingClientRect().top) === top);
+    if (row.length < 2) return;
+
+    const grid = activeCard.closest('.card-grid') || activeCard.parentElement;
+    const gap = parseFloat(getComputedStyle(grid).columnGap) || 16;
+    const gapShare = ((row.length - 1) * gap) / row.length;
+
+    const total = row.reduce((sum, c) => sum + shareOf(c), 0);
+    const norm = (c) => (shareOf(c) / total) * 100;
+
+    const target = Math.max(norm(activeCard), MIN_ACTIVE);
+    const siblings = row.filter((c) => c !== activeCard);
+    const siblingTotal = siblings.reduce((sum, c) => sum + norm(c), 0);
+
+    row.forEach((c) => {
+      const pct = c === activeCard
+        ? target
+        : (norm(c) / siblingTotal) * (100 - target);
+      c.style.flex = `${pct} 0 calc(${pct}% - ${gapShare}px)`;
     });
   }
 
-  // Grid cards: per [data-card-expand] container, zodat secties
-  // elkaar niet beinvloeden
+  function bindCard(card, group, isTabCard, gridCards) {
+    card.addEventListener('click', () => {
+      if (isTabCard && !isMobile()) return;
+      const wasActive = card.classList.contains('is-active');
+      group.forEach((c) => c.classList.remove('is-active'));
+      if (!isTabCard) clearRow(gridCards);
+      if (!wasActive) {
+        card.classList.add('is-active');
+        if (!isTabCard && !isMobile()) applyRow(card, gridCards);
+      }
+    });
+  }
+
   document.querySelectorAll('[data-card-expand]').forEach((root) => {
     const gridCards = Array.from(root.querySelectorAll('.card'))
       .filter((c) => !c.classList.contains('for-tabs') && !c.classList.contains('for-swiper'));
-    gridCards.forEach((card) => bindCard(card, gridCards, false));
+    gridCards.forEach((card) => bindCard(card, gridCards, false, gridCards));
+
+    window.addEventListener('resize', () => {
+      const active = gridCards.find((c) => c.classList.contains('is-active'));
+      clearRow(gridCards);
+      if (active && !isMobile()) applyRow(active, gridCards);
+    });
   });
 
-  tabCards.forEach((card) => bindCard(card, tabCards, true));
+  tabCards.forEach((card) => bindCard(card, tabCards, true, []));
 
   if (isMobile() && tabCards[0]) tabCards[0].classList.add('is-active');
 }
-
-/* 4. Init — elk onderdeel faalt los, zodat een fout in de tabs
-   de kaarten niet meesleept */
-document.addEventListener('DOMContentLoaded', () => {
-  try { initCardVisuals(); } catch (e) { console.error('initCardVisuals', e); }
-  try { initTabSystem(); } catch (e) { console.error('initTabSystem', e); }
-  try { initCardExpand(); } catch (e) { console.error('initCardExpand', e); }
-});
 
