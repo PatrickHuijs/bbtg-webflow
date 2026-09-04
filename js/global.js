@@ -1749,3 +1749,9 @@ function initCardExpand() {
   if (isMobile() && tabCards[0]) tabCards[0].classList.add('is-active');
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  try { initCardVisuals(); } catch (e) { console.error('initCardVisuals', e); }
+  try { initTabSystem(); } catch (e) { console.error('initTabSystem', e); }
+  try { initCardExpand(); } catch (e) { console.error('initCardExpand', e); }
+});
+
